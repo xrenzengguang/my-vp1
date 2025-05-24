@@ -29,8 +29,21 @@ jobs:
           npm install -g javascript-obfuscator
 
       - name: 下载 BPB worker.js
+       env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          wget -O origin.js https://raw.githubusercontent.com/bia-pain-bache/BPB-Worker-Panel/main/build/unobfuscated-worker.js
+          RELEASE_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/bia-pain-bache/BPB-Worker-Panel/releases/latest)
+          RELEASE_TAG=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+          echo "Latest Release: $RELEASE_TAG"
+          DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.name == "worker.js") | .browser_download_url')
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "Error: Could not find worker.js in latest release"
+            exit 1
+          fi
+          echo "Downloading from: $DOWNLOAD_URL"
+          wget -O origin.js "$DOWNLOAD_URL"
+          ls -l origin.js
+          head -n 10 origin.js
 
       - name: 混淆 BPB worker.js
         run: |
